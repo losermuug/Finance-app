@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'add_expense_screen.dart';
+import 'connect_wallet_screen.dart';
+
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
   @override
@@ -81,9 +84,7 @@ class _WalletScreenState extends State<WalletScreen>
   Widget _buildHeader(BuildContext ctx) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Color(0xFF3A9E94),
-      ),
+      decoration: const BoxDecoration(color: Color(0xFF3A9E94)),
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -149,37 +150,54 @@ class _WalletScreenState extends State<WalletScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _actionBtn(Icons.add, 'Нэмэх'),
+        _actionBtn(
+          Icons.add,
+          'Нэмэх',
+          () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const AddExpenseScreen())),
+        ),
         const SizedBox(width: 40),
-        _actionBtn(Icons.qr_code_scanner, 'Төлбөр'),
+        _actionBtn(
+          Icons.qr_code_scanner,
+          'Төлбөр',
+          () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const ConnectWalletScreen(initialTab: 0),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _actionBtn(IconData icon, String label) {
+  Widget _actionBtn(IconData icon, String label, VoidCallback onTap) {
     const c = Color(0xFF3A9E94);
-    return Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: c.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: c.withOpacity(0.3)),
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: c.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: c.withOpacity(0.3)),
+            ),
+            child: Center(child: Icon(icon, color: c, size: 26)),
           ),
-          child: Center(child: Icon(icon, color: c, size: 26)),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[700],
-            fontWeight: FontWeight.w500,
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
