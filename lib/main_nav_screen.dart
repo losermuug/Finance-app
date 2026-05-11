@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'data/repositories/auth_repository.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 import 'wallet_screen.dart';
 
 class MainNavScreen extends StatefulWidget {
@@ -19,6 +21,18 @@ class _MainNavScreenState extends State<MainNavScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || AuthRepository.instance.currentUser != null) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
@@ -27,7 +41,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -58,7 +72,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF3A9E94).withOpacity(0.1) : Colors.transparent,
+          color: isActive
+              ? const Color(0xFF3A9E94).withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
@@ -80,7 +96,14 @@ class _PlaceholderScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: Center(
-        child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF333333))),
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF333333),
+          ),
+        ),
       ),
     );
   }

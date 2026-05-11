@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "138889193514",
+    "project_id": "finance-3ecaa",
+    "storage_bucket": "finance-3ecaa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:138889193514:android:e80403a1a670ad67173b53",
+        "android_client_info": {
+          "package_name": "com.example.lab"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "138889193514-1pojrlo74qid0214ui8uud7qfnj5ljsq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdK4ACPrcVAN2F-NYS8gO_cPewhOMDb5Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "138889193514-1pojrlo74qid0214ui8uud7qfnj5ljsq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "138889193514-f3gq2lfbbrbmh6bjo04g1666u2cruien.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.lab"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

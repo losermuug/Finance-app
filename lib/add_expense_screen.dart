@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'data/models/finance_transaction.dart';
+import 'data/repositories/finance_repository.dart';
+import 'shared/widgets/brand_icon.dart';
 import 'wallet_flow_widgets.dart';
 
 class AddExpenseScreen extends StatefulWidget {
@@ -10,10 +13,11 @@ class AddExpenseScreen extends StatefulWidget {
 }
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
-  String _merchant = 'Netflix';
-  String _amountDigits = '4800';
+  String _merchant = '';
+  String _amountDigits = '0';
   DateTime _date = DateTime(2022, 2, 22);
   String? _paymentMethod;
+  bool _isSaving = false;
 
   String get _amountText {
     final cents = int.tryParse(_amountDigits) ?? 0;
@@ -126,6 +130,59 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
+  Future<void> _saveExpense() async {
+    if (_paymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Төлбөрийн хэрэгслээ сонгоно уу')),
+      );
+      return;
+    }
+
+    if (_merchant.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Гүйлгээний нэрээ сонгоно уу')),
+      );
+      return;
+    }
+
+    final amountCents = int.tryParse(_amountDigits) ?? 0;
+    if (amountCents <= 0) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Үнийн дүнгээ оруулна уу')));
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await FinanceRepository.instance.addTransaction(
+        FinanceTransaction(
+          id: '',
+          title: _merchant,
+          subtitle: _dateText,
+          amountCents: -amountCents,
+          iconKey: brandIconKeyFromName(_merchant),
+          paymentMethod: _paymentMethod,
+          createdAt: _date,
+          status: FinanceTransactionStatus.pending,
+        ),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Хүлээгдэж буй төлбөр үүслээ')),
+      );
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Хадгалахад алдаа гарлаа: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -173,6 +230,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         _DashedAddPayment(
                           label: _paymentMethod ?? 'Төлбөр нэмэх',
                           onTap: _pickPaymentMethod,
+                        ),
+                        const SizedBox(height: 20),
+                        PrimaryFilledButton(
+                          label: _isSaving ? 'ХАДГАЛЖ БАЙНА...' : 'ХАДГАЛАХ',
+                          onPressed: _isSaving ? null : _saveExpense,
                         ),
                       ],
                     ),
@@ -236,7 +298,7 @@ class _MerchantSelector extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Text(
-                merchant,
+                merchant.isEmpty ? 'Гүйлгээ сонгох' : merchant,
                 style: const TextStyle(color: Color(0xFF666666), fontSize: 14),
               ),
             ),

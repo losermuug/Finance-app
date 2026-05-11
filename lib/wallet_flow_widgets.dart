@@ -259,6 +259,37 @@ class PrimaryOutlineButton extends StatelessWidget {
   }
 }
 
+class PrimaryFilledButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+
+  const PrimaryFilledButton({super.key, required this.label, this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 60,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: walletTeal,
+          foregroundColor: Colors.white,
+          elevation: 10,
+          shadowColor: walletTeal.withValues(alpha: 0.26),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+}
+
 class _NotificationButton extends StatelessWidget {
   const _NotificationButton();
 

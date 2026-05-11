@@ -67,7 +67,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       height: 260,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),
                     // Onboarding illustration
@@ -132,7 +132,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             elevation: 4,
                             shadowColor: const Color(
                               0xFF3A9E94,
-                            ).withOpacity(0.4),
+                            ).withValues(alpha: 0.4),
                           ),
                           child: const Text(
                             'Эхлэх',

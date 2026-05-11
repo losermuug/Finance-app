@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'data/repositories/auth_repository.dart';
+import 'main_nav_screen.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -38,9 +40,13 @@ class _SplashScreenState extends State<SplashScreen>
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const OnboardingScreen(),
-            transitionsBuilder: (_, animation, __, child) =>
-                FadeTransition(opacity: animation, child: child),
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                AuthRepository.instance.currentUser == null
+                ? const OnboardingScreen()
+                : const MainNavScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) =>
+                    FadeTransition(opacity: animation, child: child),
             transitionDuration: const Duration(milliseconds: 600),
           ),
         );

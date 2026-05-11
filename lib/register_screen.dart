@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'data/repositories/auth_repository.dart';
+import 'main_nav_screen.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -16,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -42,6 +46,50 @@ class _RegisterScreenState extends State<RegisterScreen>
     _confirmPasswordController.dispose();
     _animController.dispose();
     super.dispose();
+  }
+
+  Future<void> _register() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      _showMessage('Бүх талбарыг бөглөнө үү');
+      return;
+    }
+    if (password != confirmPassword) {
+      _showMessage('Нууц үгнүүд таарахгүй байна');
+      return;
+    }
+    if (password.length < 6) {
+      _showMessage('Нууц үг хамгийн багадаа 6 тэмдэгт байна');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthRepository.instance.register(
+        name: name,
+        email: email,
+        password: password,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainNavScreen()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(_authErrorMessage(error));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -78,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     height: 200,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF4DB6AC).withOpacity(0.4),
+                      color: const Color(0xFF4DB6AC).withValues(alpha: 0.4),
                     ),
                   ),
                 ),
@@ -90,7 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     height: 150,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                     ),
                   ),
                 ),
@@ -110,7 +158,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     Text(
                       'Орлого, зарлагаа хянахад тань туслана',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 13,
                       ),
                     ),
@@ -167,7 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: _isLoading ? null : _register,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3A9E94),
                           foregroundColor: Colors.white,
@@ -175,10 +223,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                             borderRadius: BorderRadius.circular(30),
                           ),
                           elevation: 4,
-                          shadowColor: const Color(0xFF3A9E94).withOpacity(0.4),
+                          shadowColor: const Color(
+                            0xFF3A9E94,
+                          ).withValues(alpha: 0.4),
                         ),
-                        child: const Text(
-                          'Бүртгүүлэх',
+                        child: Text(
+                          _isLoading ? 'Бүртгэж байна...' : 'Бүртгүүлэх',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -243,7 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -279,4 +329,20 @@ class _RegisterScreenState extends State<RegisterScreen>
       ),
     );
   }
+}
+
+String _authErrorMessage(Object error) {
+  final text = error.toString();
+  if (text.contains('email-already-in-use')) {
+    return 'Энэ имэйлээр хэрэглэгч бүртгэлтэй байна';
+  }
+  if (text.contains('invalid-email')) return 'Имэйл хаяг буруу байна';
+  if (text.contains('weak-password')) return 'Нууц үг хэт сул байна';
+  if (text.contains('network-request-failed')) {
+    return 'Интернет холболтоо шалгана уу';
+  }
+  if (text.contains('operation-not-allowed')) {
+    return 'Firebase Console дээр Email/Password sign-in асаана уу';
+  }
+  return 'Бүртгүүлэхэд алдаа гарлаа: $error';
 }

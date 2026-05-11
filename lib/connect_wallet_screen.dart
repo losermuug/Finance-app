@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'data/models/finance_transaction.dart';
+import 'data/repositories/finance_repository.dart';
 import 'wallet_flow_widgets.dart';
 
 class ConnectWalletScreen extends StatefulWidget {
@@ -15,11 +17,12 @@ class _ConnectWalletScreenState extends State<ConnectWalletScreen> {
   late int _selectedTab;
   String _selectedMethod = 'Bank Link';
 
-  final _nameController = TextEditingController(text: 'Davaasuren Nyamjav');
+  final _nameController = TextEditingController();
   final _numberController = TextEditingController();
   final _cvcController = TextEditingController();
   final _expiryController = TextEditingController();
   final _valueController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -43,7 +46,7 @@ class _ConnectWalletScreenState extends State<ConnectWalletScreen> {
     ).showSnackBar(SnackBar(content: Text('$_selectedMethod сонгогдлоо')));
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_nameController.text.trim().isEmpty ||
         _numberController.text.trim().isEmpty ||
         _cvcController.text.trim().isEmpty ||
@@ -55,9 +58,41 @@ class _ConnectWalletScreenState extends State<ConnectWalletScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Карт амжилттай нэмэгдлээ')));
+    final value = double.tryParse(_valueController.text.trim());
+    if (value == null || value <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Цэнэглэх дүнгээ зөв оруулна уу')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await FinanceRepository.instance.addTransaction(
+        FinanceTransaction(
+          id: '',
+          title: 'Wallet top up',
+          subtitle: 'Карт',
+          amountCents: (value * 100).round(),
+          iconKey: 'avatar',
+          paymentMethod: 'Card',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Карт амжилттай нэмэгдлээ')));
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Хадгалахад алдаа гарлаа: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -91,11 +126,10 @@ class _ConnectWalletScreenState extends State<ConnectWalletScreen> {
                         switchInCurve: Curves.easeOutCubic,
                         switchOutCurve: Curves.easeInCubic,
                         transitionBuilder: (child, animation) {
-                          final offsetAnimation =
-                              Tween<Offset>(
-                                begin: const Offset(0.04, 0),
-                                end: Offset.zero,
-                              ).animate(animation);
+                          final offsetAnimation = Tween<Offset>(
+                            begin: const Offset(0.04, 0),
+                            end: Offset.zero,
+                          ).animate(animation);
                           return FadeTransition(
                             opacity: animation,
                             child: SlideTransition(
@@ -115,8 +149,16 @@ class _ConnectWalletScreenState extends State<ConnectWalletScreen> {
                   ),
                   const SizedBox(height: 12),
                   PrimaryOutlineButton(
-                    label: _selectedTab == 0 ? 'ИЛГЭЭХ' : 'ДАРААХ',
-                    onPressed: _selectedTab == 0 ? _submit : _continueAccount,
+                    label: _isSubmitting
+                        ? 'ИЛГЭЭЖ БАЙНА...'
+                        : _selectedTab == 0
+                        ? 'ИЛГЭЭХ'
+                        : 'ДАРААХ',
+                    onPressed: _isSubmitting
+                        ? null
+                        : _selectedTab == 0
+                        ? _submit
+                        : _continueAccount,
                   ),
                 ],
               ),
@@ -520,7 +562,7 @@ class _CardArcPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _LabeledField extends StatelessWidget {
+class _LabeledField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
@@ -532,7 +574,27 @@ class _LabeledField extends StatelessWidget {
   });
 
   @override
+  State<_LabeledField> createState() => _LabeledFieldState();
+}
+
+class _LabeledFieldState extends State<_LabeledField> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isFocused = _focusNode.hasFocus;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -540,8 +602,9 @@ class _LabeledField extends StatelessWidget {
           height: 55,
           width: double.infinity,
           child: TextField(
-            controller: controller,
-            onChanged: onChanged,
+            controller: widget.controller,
+            focusNode: _focusNode,
+            onChanged: widget.onChanged,
             decoration: InputDecoration(
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 18,
@@ -556,8 +619,8 @@ class _LabeledField extends StatelessWidget {
                 borderSide: const BorderSide(color: walletTeal, width: 1.2),
               ),
             ),
-            style: const TextStyle(
-              color: walletTeal,
+            style: TextStyle(
+              color: isFocused ? walletTeal : const Color(0xFF555555),
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -570,7 +633,7 @@ class _LabeledField extends StatelessWidget {
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              label,
+              widget.label,
               style: const TextStyle(color: Color(0xFF8E8E8E), fontSize: 12),
             ),
           ),
@@ -580,7 +643,7 @@ class _LabeledField extends StatelessWidget {
   }
 }
 
-class _SmallField extends StatelessWidget {
+class _SmallField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final TextInputType? keyboardType;
@@ -594,15 +657,36 @@ class _SmallField extends StatelessWidget {
   });
 
   @override
+  State<_SmallField> createState() => _SmallFieldState();
+}
+
+class _SmallFieldState extends State<_SmallField> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isFocused = _focusNode.hasFocus;
     return SizedBox(
       height: 38,
       child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        onChanged: onChanged,
+        controller: widget.controller,
+        focusNode: _focusNode,
+        keyboardType: widget.keyboardType,
+        onChanged: widget.onChanged,
         decoration: InputDecoration(
-          hintText: label,
+          hintText: widget.label,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 11,
@@ -616,7 +700,10 @@ class _SmallField extends StatelessWidget {
             borderSide: const BorderSide(color: walletTeal, width: 1.2),
           ),
         ),
-        style: const TextStyle(color: walletTeal, fontSize: 12),
+        style: TextStyle(
+          color: isFocused ? walletTeal : const Color(0xFF555555),
+          fontSize: 12,
+        ),
         textAlignVertical: TextAlignVertical.center,
       ),
     );

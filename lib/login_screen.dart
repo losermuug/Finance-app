@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'data/repositories/auth_repository.dart';
 import 'register_screen.dart';
 import 'main_nav_screen.dart';
 
@@ -14,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -45,6 +48,36 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showMessage('Имэйл болон нууц үгээ оруулна уу');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthRepository.instance.signIn(email: email, password: password);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainNavScreen()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(_authErrorMessage(error));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen>
                     height: 200,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF4DB6AC).withOpacity(0.4),
+                      color: const Color(0xFF4DB6AC).withValues(alpha: 0.4),
                     ),
                   ),
                 ),
@@ -85,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen>
                     height: 150,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.12),
+                      color: Colors.white.withValues(alpha: 0.12),
                     ),
                   ),
                 ),
@@ -158,13 +191,7 @@ class _LoginScreenState extends State<LoginScreen>
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (_) => const MainNavScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF3A9E94),
                             foregroundColor: Colors.white,
@@ -174,10 +201,10 @@ class _LoginScreenState extends State<LoginScreen>
                             elevation: 4,
                             shadowColor: const Color(
                               0xFF3A9E94,
-                            ).withOpacity(0.4),
+                            ).withValues(alpha: 0.4),
                           ),
-                          child: const Text(
-                            'Нэвтрэх',
+                          child: Text(
+                            _isLoading ? 'Нэвтэрч байна...' : 'Нэвтрэх',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -227,71 +254,6 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildDocCard({
-    required bool hasCheckmark,
-    required bool isHighlighted,
-  }) {
-    return Container(
-      width: 70,
-      height: 80,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isHighlighted)
-                  Container(
-                    height: 10,
-                    width: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF9C8FD4),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  )
-                else
-                  Container(height: 6, width: 50, color: Colors.grey.shade300),
-                const SizedBox(height: 4),
-                Container(height: 4, width: 50, color: Colors.grey.shade200),
-                const SizedBox(height: 3),
-                Container(height: 4, width: 40, color: Colors.grey.shade200),
-                const SizedBox(height: 3),
-                Container(height: 4, width: 45, color: Colors.grey.shade200),
-              ],
-            ),
-          ),
-          if (hasCheckmark)
-            Positioned(
-              top: -6,
-              right: -6,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF3A9E94),
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 14),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -307,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -343,4 +305,20 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
   }
+}
+
+String _authErrorMessage(Object error) {
+  final text = error.toString();
+  if (text.contains('user-not-found') || text.contains('invalid-credential')) {
+    return 'Имэйл эсвэл нууц үг буруу байна';
+  }
+  if (text.contains('wrong-password')) return 'Нууц үг буруу байна';
+  if (text.contains('invalid-email')) return 'Имэйл хаяг буруу байна';
+  if (text.contains('network-request-failed')) {
+    return 'Интернет холболтоо шалгана уу';
+  }
+  if (text.contains('operation-not-allowed')) {
+    return 'Firebase Console дээр Email/Password sign-in асаана уу';
+  }
+  return 'Нэвтрэхэд алдаа гарлаа: $error';
 }
